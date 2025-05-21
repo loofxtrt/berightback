@@ -19,15 +19,21 @@ fi
 
 # copiar os diretórios especificados pro diretório de backup
 copy_directories() {
-    local dir_args=("$@") # variável que representa todos os argumentos passados pra essa função
-    local dir_count=0     # variável só pra obter o número de diretórios
+    local destination="$1" # argumento do subdiretório de destino em direção ao diretório de backup pai 
+    shift
+    local dir_args=("$@")  # variável que representa todos os argumentos passados pra essa função
+    local dir_count=0      # variável só pra obter o número de diretórios
 
+    # criar o subdiretório a cada leva de arrays copiados
+    mkdir -p "$destination"
+
+    # copiar os diretórios pro destino
     for dir in "${dir_args[@]}"; do           # receber os argumentos passados pra função e transformar num array (ex: dir_args=(/pasta1 /pasta2))
         if [ -d "$dir" ]; then                # testar se é um diretório que realmente existe
-            cp -r "$dir" "$BACKUP_DIRECTORY/" # copiar pro direttório de destino
+            cp -r "$dir" "$destination/"      # copiar pro direttório de destino
 
             ((dir_count+=1)) # incrementar mais um diretório na contagem
-            echo "Copied $dir to $BACKUP_DIRECTORY$"
+            echo "Copied $dir to $destination"
         fi
     done
 
@@ -50,8 +56,11 @@ run_backup() {
         #   o -q faz o grep não printar nada, só retornar true ou false
         #   se esse if for true, essa variável é um array, então deve continuar
         if declare -p "$var_name" 2>/dev/null | grep -q 'declare \-a'; then
-            echo -e "${BLUE}Now copying $var_name${RESET}"
-            eval "copy_directories \"\${$var_name[@]}\"" # usar eval pra poder rodar duas camadas de variáveis, chamando a função pra cada uma
+            local subdir_name="${var_name#target_}"                 # remove o prefixo "target_"
+            local array_backup_dir="$BACKUP_DIRECTORY/$subdir_name" # subdiretório do backup
+
+            echo -e "${BLUE}Now copying $var_name into $array_backup_dir${RESET}"
+            eval "copy_directories \"$array_backup_dir\" \"\${$var_name[@]}\"" # usar eval pra poder rodar duas camadas de variáveis, chamando a função pra cada uma
         fi
     done
 
